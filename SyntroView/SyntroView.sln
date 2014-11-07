@@ -1,0 +1,23 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SyntroView", "SyntroView.vcxproj", "{33DDC43F-741F-4455-AF77-DDC69C43C916}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{33DDC43F-741F-4455-AF77-DDC69C43C916}.Debug|Win32.ActiveCfg = Debug|Win32
+		{33DDC43F-741F-4455-AF77-DDC69C43C916}.Debug|Win32.Build.0 = Debug|Win32
+		{33DDC43F-741F-4455-AF77-DDC69C43C916}.Release|Win32.ActiveCfg = Release|Win32
+		{33DDC43F-741F-4455-AF77-DDC69C43C916}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		Qt5Version = $(DefaultQtVersion)
+	EndGlobalSection
+EndGlobal
