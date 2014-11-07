@@ -4,6 +4,16 @@ SyntroApps contains all the SyntroNet apps in one repo.
 
 Check out www.richards-tech.com for more details.
 
+### Release history
+
+#### November 7 2014 - 1.1.0
+
+Updated RTIMULib to include MPU-9250 and SPI support
+
+#### November 4 2014 - 1.0.1
+
+Added SyntroGloveView.
+
 ### Dependencies
 
 1. Qt4 or Qt5 development libraries and headers (Qt5 recommended if possible)
