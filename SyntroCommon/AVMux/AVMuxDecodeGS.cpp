@@ -27,16 +27,34 @@
 
 #define GSTBUSMSG
 
-static void newVideoSinkData (GstElement * /*appsink*/,
+#ifdef USE_GST10
+static void sinkEOS(GstAppSink * /*appsink*/, gpointer /*user_data*/)
+{
+}
+
+static GstFlowReturn newVideoSinkPreroll(GstAppSink * /*appsink*/, gpointer /* user_data */)
+{
+    return GST_FLOW_OK;
+}
+
+static GstFlowReturn newAudioSinkPreroll(GstAppSink * /*appsink*/, gpointer /* user_data */)
+{
+    return GST_FLOW_OK;
+}
+#endif
+
+static GstFlowReturn newVideoSinkData (GstAppSink * /*appsink*/,
           gpointer user_data)
 {
     ((AVMuxDecode *)user_data)->processVideoSinkData();
+    return GST_FLOW_OK;
 }
 
-static void newAudioSinkData (GstElement * /*appsink*/,
+static GstFlowReturn newAudioSinkData (GstAppSink * /*appsink*/,
           gpointer user_data)
 {
     ((AVMuxDecode *)user_data)->processAudioSinkData();
+    return GST_FLOW_OK;
 }
 
 #ifdef GSTBUSMSG
@@ -80,7 +98,7 @@ AVMuxDecode::AVMuxDecode() : SyntroThread("AVMuxDecode", "AVMuxDecode")
     m_appAudioSrc = NULL;
     m_appVideoSink = NULL;
     m_appAudioSrc = NULL;
-	m_pipelinesActive = false;
+    m_pipelinesActive = false;
     m_videoBusWatch = -1;
     m_audioBusWatch = -1;
 
@@ -101,19 +119,36 @@ void AVMuxDecode::finishThread()
 void AVMuxDecode::timerEvent(QTimerEvent * /*event*/)
 {
     GstBuffer *buffer;
-	uchar *data;
+    uchar *data;
 
-    m_avmuxLock.lock();
-    while (!m_avmuxQ.empty())
-        processAVData(m_avmuxQ.dequeue());
+    while (1) {
+        m_avmuxLock.lock();
+        if (m_avmuxQ.empty())
+            break;
+
+        QByteArray data = m_avmuxQ.dequeue();
+        m_avmuxLock.unlock();
+        processAVData(data);
+    }
     m_avmuxLock.unlock();
 
-   m_videoLock.lock();
-   if (m_videoPipeline != NULL) {
+    m_videoLock.lock();
+    if (m_videoPipeline != NULL) {
          while (!m_videoSinkQ.empty()) {
             buffer = m_videoSinkQ.dequeue();
-			data = (uchar *)malloc(GST_BUFFER_SIZE(buffer));
-			memcpy(data, GST_BUFFER_DATA(buffer), GST_BUFFER_SIZE(buffer));
+#ifdef USE_GST10
+            GstMemory *sinkMem = gst_buffer_get_all_memory(buffer);
+            GstMapInfo *info = new GstMapInfo;
+            gst_memory_map(sinkMem, info, GST_MAP_READ);
+            data = (uchar *)malloc(sinkMem->size);
+            memcpy(data, info->data, sinkMem->size);
+            gst_memory_unmap(sinkMem, info);
+            delete info;
+            gst_memory_unref(sinkMem);
+#else
+            data = (uchar *)malloc(GST_BUFFER_SIZE(buffer));
+            memcpy(data, GST_BUFFER_DATA(buffer), GST_BUFFER_SIZE(buffer));
+#endif
             QImage image(data, m_avParams.videoWidth, m_avParams.videoHeight, QImage::Format_RGB888, free, data);
             emit newImage(image, m_lastVideoTimestamp);
             gst_buffer_unref(buffer);
@@ -122,12 +157,25 @@ void AVMuxDecode::timerEvent(QTimerEvent * /*event*/)
     m_videoLock.unlock();
 
     m_audioLock.lock();
-	if (m_audioPipeline != NULL) {
+    if (m_audioPipeline != NULL) {
         while (!m_audioSinkQ.empty()) {
             buffer = m_audioSinkQ.dequeue();
+#ifdef USE_GST10
+            GstMemory *sinkMem = gst_buffer_get_all_memory(buffer);
+            GstMapInfo *info = new GstMapInfo;
+            gst_memory_map(sinkMem, info, GST_MAP_READ);
+            QByteArray audio((const char *)info->data, sinkMem->size);
+            gst_memory_unmap(sinkMem, info);
+            delete info;
+            gst_memory_unref(sinkMem);
+            gst_buffer_unref(buffer);
+            emit newAudioSamples(audio,
+                              m_lastAudioTimestamp, m_avParams.audioSampleRate, m_avParams.audioChannels, m_avParams.audioSampleSize);
+#else
             emit newAudioSamples(QByteArray((const char *)GST_BUFFER_DATA(buffer), GST_BUFFER_SIZE(buffer)),
                               m_lastAudioTimestamp, m_avParams.audioSampleRate, m_avParams.audioChannels, m_avParams.audioSampleSize);
             gst_buffer_unref(buffer);
+#endif
         }
     }
     m_audioLock.unlock();
@@ -138,11 +186,19 @@ void AVMuxDecode::processVideoSinkData()
     GstBuffer *buffer;
 
     m_videoLock.lock();
-	if (m_appVideoSink != NULL) {
-		if ((buffer = gst_app_sink_pull_buffer((GstAppSink *)(m_appVideoSink))) != NULL) {
-			m_videoSinkQ.enqueue(buffer);
-		}
-	}
+    if (m_appVideoSink != NULL) {
+#ifdef USE_GST10
+        GstSample *sinkSample = gst_app_sink_pull_sample((GstAppSink *)(m_appVideoSink));
+        if (sinkSample != NULL) {
+            buffer = gst_sample_get_buffer(sinkSample);
+            m_videoSinkQ.enqueue(buffer);
+        }
+#else
+        if ((buffer = gst_app_sink_pull_buffer((GstAppSink *)(m_appVideoSink))) != NULL) {
+            m_videoSinkQ.enqueue(buffer);
+        }
+#endif
+    }
     m_videoLock.unlock();
 }
 
@@ -151,11 +207,19 @@ void AVMuxDecode::processAudioSinkData()
     GstBuffer *buffer;
 
     m_audioLock.lock();
-	if (m_appAudioSink != NULL) {
-		if ((buffer = gst_app_sink_pull_buffer((GstAppSink *)(m_appAudioSink))) != NULL) {
-		 m_audioSinkQ.enqueue(buffer);
-		}
-	}
+    if (m_appAudioSink != NULL) {
+#ifdef USE_GST10
+        GstSample *sinkSample = gst_app_sink_pull_sample((GstAppSink *)(m_appAudioSink));
+        if (sinkSample != NULL) {
+            buffer = gst_sample_get_buffer(sinkSample);
+            m_audioSinkQ.enqueue(buffer);
+        }
+#else
+        if ((buffer = gst_app_sink_pull_buffer((GstAppSink *)(m_appAudioSink))) != NULL) {
+            m_audioSinkQ.enqueue(buffer);
+        }
+#endif
+    }
     m_audioLock.unlock();
 }
 
@@ -179,20 +243,20 @@ void AVMuxDecode::processAVData(QByteArray avmuxArray)
             break;
 
         case SYNTRO_RECORD_TYPE_AVMUX_RTP:
-			if (!m_pipelinesActive) {
+            if (!m_pipelinesActive) {
                 m_oldAvParams = m_avParams;
-				if (m_videoPipeline == NULL) {
-					newPipelines(&m_avParams);
-					if (m_videoPipeline == NULL)
-					return;
+                if (m_videoPipeline == NULL) {
+                    newPipelines(&m_avParams);
+                    if (m_videoPipeline == NULL)
+                    return;
                 }
-				if (m_audioPipeline == NULL) {
-					newPipelines(&m_avParams);
-					if (m_audioPipeline == NULL)
-						return;
-				}
-			} 
-			if (m_pipelinesActive)
+                if (m_audioPipeline == NULL) {
+                    newPipelines(&m_avParams);
+                    if (m_audioPipeline == NULL)
+                        return;
+                }
+            }
+            if (m_pipelinesActive)
                 processRTP(avmux);
             break;
 
@@ -240,7 +304,7 @@ void AVMuxDecode::processMJPPCM(SYNTRO_RECORD_AVMUX *avmux)
         }
         emit newAudioSamples(QByteArray((const char *)ptr, audioSize),
             SyntroUtils::convertUC8ToInt64(avmux->recordHeader.timestamp),
-			m_avParams.audioSampleRate, m_avParams.audioChannels, m_avParams.audioSampleSize);
+            m_avParams.audioSampleRate, m_avParams.audioChannels, m_avParams.audioSampleSize);
         ptr += audioSize;                        // move to next data area
     }
 }
@@ -330,7 +394,6 @@ bool AVMuxDecode::newPipelines(SYNTRO_AVPARAMS *avParams)
     gchar *videoLaunch;
     gchar *audioLaunch;
     GError *error = NULL;
-    qint64 now = QDateTime::currentMSecsSinceEpoch() * PIPELINE_MS_TO_NS;
 
     m_avParams = *avParams;
     index = pipelineIndex++;
@@ -338,8 +401,6 @@ bool AVMuxDecode::newPipelines(SYNTRO_AVPARAMS *avParams)
 //    printf("width=%d, height=%d, rate=%d\n", avParams->videoWidth, avParams->videoHeight, avParams->videoFramerate);
 //    printf("channels=%d, rate=%d, size=%d\n", avParams->audioChannels, avParams->audioSampleRate, avParams->audioSampleSize);
 
-    m_nextVideoTime = now;
-    m_nextAudioTime = now;
     m_videoOffset = 0;
     m_audioOffset = 0;
     m_waitingForVideoCaps = true;
@@ -348,15 +409,29 @@ bool AVMuxDecode::newPipelines(SYNTRO_AVPARAMS *avParams)
     //  Construct the pipelines
 
     if (avParams->videoSubtype == SYNTRO_RECORD_TYPE_VIDEO_RTPMPEG4) {
+#ifdef USE_GST10
+        videoLaunch = g_strdup_printf (
+           " appsrc name=videoSrc%d ! rtpmp4vdepay ! queue ! avdec_mpeg4 "
+                    " ! videoconvert ! capsfilter caps=\"video/x-raw,format=RGB\" ! appsink name=videoSink%d"
+           , index, index);
+#else
         videoLaunch = g_strdup_printf (
            " appsrc name=videoSrc%d ! rtpmp4vdepay ! queue ! ffdec_mpeg4 "
                     " ! ffmpegcolorspace ! capsfilter caps=\"video/x-raw-rgb\" ! appsink name=videoSink%d"
            , index, index);
+#endif
     } else {
+#ifdef USE_GST10
+        videoLaunch = g_strdup_printf (
+             " appsrc name=videoSrc%d ! rtph264depay ! queue ! h264parse ! avdec_h264"
+             " ! videoconvert ! capsfilter caps=\"video/x-raw,format=RGB\" ! appsink name=videoSink%d"
+                    , index, index);
+#else
         videoLaunch = g_strdup_printf (
            " appsrc name=videoSrc%d ! rtph264depay ! queue ! ffdec_h264 "
                     " ! ffmpegcolorspace ! capsfilter caps=\"video/x-raw-rgb\" ! appsink name=videoSink%d"
            , index, index);
+#endif
     }
 
     m_videoPipeline = gst_parse_launch(videoLaunch, &error);
@@ -423,13 +498,28 @@ bool AVMuxDecode::newPipelines(SYNTRO_AVPARAMS *avParams)
         }
     g_free(audioSrc);
 
+#ifdef USE_GST10
+    GstAppSinkCallbacks vcb, acb;
+    vcb.eos = sinkEOS;
+    vcb.new_preroll = newVideoSinkPreroll;
+    vcb.new_sample = newVideoSinkData;
+    gst_app_sink_set_callbacks((GstAppSink *)m_appVideoSink, &vcb, this, NULL);
+
+    acb.eos = sinkEOS;
+    acb.new_preroll = newAudioSinkPreroll;
+    acb.new_sample = newAudioSinkData;
+    gst_app_sink_set_callbacks((GstAppSink *)m_appAudioSink, &acb, this, NULL);
+
+    g_object_set(m_appVideoSrc, "format", GST_FORMAT_TIME, NULL);
+    g_object_set(m_appAudioSrc, "format", GST_FORMAT_TIME, NULL);
+
+#else
     g_signal_connect (m_appVideoSink, "new-buffer", G_CALLBACK (newVideoSinkData), this);
     gst_app_sink_set_emit_signals((GstAppSink *)(m_appVideoSink), TRUE);
 
     g_signal_connect (m_appAudioSink, "new-buffer", G_CALLBACK (newAudioSinkData), this);
     gst_app_sink_set_emit_signals((GstAppSink *)(m_appAudioSink), TRUE);
-
-    m_videoInterval = (1000 * PIPELINE_MS_TO_NS) / m_avParams.videoFramerate;
+#endif
 
 #ifdef GSTBUSMSG
     GstBus *bus;
@@ -443,18 +533,30 @@ bool AVMuxDecode::newPipelines(SYNTRO_AVPARAMS *avParams)
     gst_object_unref (bus);
 #endif
 
-	m_pipelinesActive = true;
-	return true;
+    GstStateChangeReturn ret = gst_element_set_state (m_videoPipeline, GST_STATE_PLAYING);
+    if (ret == GST_STATE_CHANGE_FAILURE) {
+        g_printerr ("Unable to set the video pipeline to the play state.\n");
+    }
+    m_pipelinesActive = true;
+    return true;
 }
 
 void AVMuxDecode::deletePipelines()
 {
-	m_pipelinesActive = false;
-	m_videoLock.lock();
+    m_pipelinesActive = false;
+    m_videoLock.lock();
     if (m_videoPipeline != NULL) {
-		gst_app_sink_set_emit_signals((GstAppSink *)(m_appVideoSink), FALSE);
-		g_signal_handlers_disconnect_by_data(m_appVideoSink, this);
-		gst_element_set_state (m_videoPipeline, GST_STATE_NULL);
+#ifdef USE_GST10
+        GstAppSinkCallbacks cb;
+        cb.eos = NULL;
+        cb.new_preroll = NULL;
+        cb.new_sample = NULL;
+        gst_app_sink_set_callbacks((GstAppSink *)m_appVideoSink, &cb, this, NULL);
+#else
+        gst_app_sink_set_emit_signals((GstAppSink *)(m_appVideoSink), FALSE);
+        g_signal_handlers_disconnect_by_data(m_appVideoSink, this);
+#endif
+        gst_element_set_state (m_videoPipeline, GST_STATE_NULL);
         gst_object_unref(m_videoPipeline);
     }
 
@@ -465,17 +567,25 @@ void AVMuxDecode::deletePipelines()
     }
 #endif
 
-	while (!m_videoSinkQ.empty())
-		gst_buffer_unref(m_videoSinkQ.dequeue());
+    while (!m_videoSinkQ.empty())
+        gst_buffer_unref(m_videoSinkQ.dequeue());
     m_videoPipeline = NULL;
     m_appVideoSink = NULL;
     m_appVideoSrc = NULL;
-	m_videoLock.unlock();
+    m_videoLock.unlock();
 
-	m_audioLock.lock();
-	if (m_audioPipeline != NULL) {
-	    gst_app_sink_set_emit_signals((GstAppSink *)(m_appAudioSink), FALSE);
-		g_signal_handlers_disconnect_by_data(m_appAudioSink, this);
+    m_audioLock.lock();
+    if (m_audioPipeline != NULL) {
+#ifdef USE_GST10
+        GstAppSinkCallbacks cb;
+        cb.eos = NULL;
+        cb.new_preroll = NULL;
+        cb.new_sample = NULL;
+        gst_app_sink_set_callbacks((GstAppSink *)m_appAudioSink, &cb, this, NULL);
+#else
+        gst_app_sink_set_emit_signals((GstAppSink *)(m_appAudioSink), FALSE);
+        g_signal_handlers_disconnect_by_data(m_appAudioSink, this);
+#endif
         gst_element_set_state (m_audioPipeline, GST_STATE_NULL);
         gst_object_unref(m_audioPipeline);
     }
@@ -487,21 +597,21 @@ void AVMuxDecode::deletePipelines()
     }
 #endif
 
-	while (!m_audioSinkQ.empty())
-		gst_buffer_unref(m_audioSinkQ.dequeue());
-	m_audioPipeline = NULL;
+    while (!m_audioSinkQ.empty())
+        gst_buffer_unref(m_audioSinkQ.dequeue());
+    m_audioPipeline = NULL;
     m_appAudioSink = NULL;
     m_appAudioSrc = NULL;
-	m_audioLock.unlock();
+    m_audioLock.unlock();
 
 //    m_avmuxLock.lock();
-	m_avmuxQ.clear();
+    m_avmuxQ.clear();
 //    m_avmuxLock.unlock();
 }
 
 void AVMuxDecode::putRTPVideoCaps(unsigned char *data, int length)
 {
-	QMutexLocker lock(&m_videoLock);
+    QMutexLocker lock(&m_videoLock);
     GstStateChangeReturn ret;
 
     if (m_videoPipeline == NULL)
@@ -515,7 +625,7 @@ void AVMuxDecode::putRTPVideoCaps(unsigned char *data, int length)
 
     data[length-1] = 0;                                     // make sure 0 terminated
 
-    gst_app_src_set_stream_type((GstAppSrc *)(m_appVideoSrc), GST_APP_STREAM_TYPE_STREAM);
+    gst_app_src_set_stream_type((GstAppSrc *)m_appVideoSrc, GST_APP_STREAM_TYPE_STREAM);
     gst_app_src_set_caps((GstAppSrc *)m_appVideoSrc, gst_caps_from_string((gchar *)data));
 
     m_waitingForVideoCaps = false;
@@ -534,7 +644,7 @@ void AVMuxDecode::putRTPVideoCaps(unsigned char *data, int length)
 
 void AVMuxDecode::putRTPAudioCaps(unsigned char *data, int length)
 {
-	QMutexLocker lock(&m_audioLock);
+    QMutexLocker lock(&m_audioLock);
 
     GstStateChangeReturn ret;
     if (m_audioPipeline == NULL)
@@ -567,7 +677,7 @@ void AVMuxDecode::putRTPAudioCaps(unsigned char *data, int length)
 
 void AVMuxDecode::putVideoData(const unsigned char *data, int length)
 {
-	QMutexLocker lock(&m_videoLock);
+    QMutexLocker lock(&m_videoLock);
 
     GstBuffer *buffer;
     int segLength;
@@ -591,12 +701,26 @@ void AVMuxDecode::putVideoData(const unsigned char *data, int length)
             return;
         }
         buffer = gst_buffer_new_and_alloc(segLength);
-
+#ifdef USE_GST10
+        GstMemory *sinkMem = gst_buffer_get_all_memory(buffer);
+        GstMapInfo *info = new GstMapInfo;
+        gst_memory_map(sinkMem, info, GST_MAP_WRITE);
+        memcpy(info->data, data, segLength);
+        gst_memory_unmap(sinkMem, info);
+        delete info;
+        gst_memory_unref(sinkMem);
+#else
         memcpy(GST_BUFFER_DATA(buffer), data, segLength);
+#endif
 
         GST_BUFFER_OFFSET(buffer) = m_videoOffset;
         m_videoOffset += segLength;
         GST_BUFFER_OFFSET_END(buffer) = m_videoOffset;
+#ifdef USE_GST10
+        GST_BUFFER_PTS(buffer) = 0;
+#else
+        GST_BUFFER_TIMESTAMP(buffer) = 0;
+#endif
 
         ret = gst_app_src_push_buffer((GstAppSrc *)(m_appVideoSrc), buffer);
         if (ret != GST_FLOW_OK)
@@ -611,7 +735,7 @@ void AVMuxDecode::putVideoData(const unsigned char *data, int length)
 
 void AVMuxDecode::putAudioData(const unsigned char *data, int length)
 {
-	QMutexLocker lock(&m_audioLock);
+    QMutexLocker lock(&m_audioLock);
     GstBuffer *buffer;
     int segLength;
     GstFlowReturn ret;
@@ -635,7 +759,17 @@ void AVMuxDecode::putAudioData(const unsigned char *data, int length)
         }
         buffer = gst_buffer_new_and_alloc(segLength);
 
+#ifdef USE_GST10
+        GstMemory *sinkMem = gst_buffer_get_all_memory(buffer);
+        GstMapInfo *info = new GstMapInfo;
+        gst_memory_map(sinkMem, info, GST_MAP_WRITE);
+        memcpy(info->data, data, segLength);
+        gst_memory_unmap(sinkMem, info);
+        delete info;
+        gst_memory_unref(sinkMem);
+#else
         memcpy(GST_BUFFER_DATA(buffer), data, segLength);
+#endif
 
         GST_BUFFER_OFFSET(buffer) = m_audioOffset;
         m_audioOffset += segLength;

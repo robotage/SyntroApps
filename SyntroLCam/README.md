@@ -5,15 +5,9 @@ to a SyntroNet system.
 
 Check out www.richards-tech.com for more details.
 
-### Dependencies
-
-1. Qt4 or Qt5 development libraries and headers
-2. SyntroCore libraries and headers 
-
-
 ### Build 
 
-	cd ~/SyntroNet/SyntroApps/SyntroLCam
+	cd ~/richards-tech/SyntroApps/SyntroLCam
 	qmake
 	make
 	sudo make install

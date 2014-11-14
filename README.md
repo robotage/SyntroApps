@@ -6,6 +6,10 @@ Check out www.richards-tech.com for more details.
 
 ### Release history
 
+#### November 13 2014 - 1.2.0
+
+Upgraded SyntroViewGS to gstreamer 1.0 on Linux (still 0.10 on Windows).
+
 #### November 7 2014 - 1.1.0
 
 Updated RTIMULib to include MPU-9250 and SPI support
@@ -27,8 +31,8 @@ Added SyntroGloveView.
 
 If SyntroCore has not been installed yet:
 
-	mkdir ~/SyntroNet
-	cd ~/SyntroNet
+	mkdir ~/richards-tech
+	cd ~/richards-tech
 	git clone git://github.com/richards-tech/SyntroCore.git
 	cd SyntroCore
 	qmake
@@ -38,11 +42,12 @@ If SyntroCore has not been installed yet:
 To compile the GS apps, install the gstreamer sdk at the standard location. See http://docs.gstreamer.com/display/GstSDK/Installing+the+SDK for Windows and Mac. For Ubuntu,
 
 	sudo apt-get install libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libgstreamer-plugins-bad0.10-dev	
+	sudo apt-get install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-libav	
 
 	
 Then:
 
-	cd ~/SyntroNet
+	cd ~/richards-tech
 	git clone git://github.com/richards-tech/SyntroApps.git
 	cd SyntroApps
 	qmake SyntroApps.pro
@@ -58,7 +63,7 @@ To make the GS apps:
 
 Alternatively, each app can be individually compiled (better on lower power processors such as ARMs). For example, to compile SyntroView:
 
-	cd ~/SyntroNet/SyntroApps/SyntroView
+	cd ~/richards-tech/SyntroApps/SyntroView
 	qmake
 	make
 	sudo make install

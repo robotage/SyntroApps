@@ -1,30 +1,8 @@
 # SyntroLCamGS
 
-SyntroLCamGS is a Linux only Syntro application for streaming media from USB webcams
-to a SyntroNet system. It can generate MJPEG/PCM, MP4V/MP4A and H.264/MP4A video/audio streams.
-
-Check out www.richards-tech.com for more details.
-
-### Dependencies
-
-1. Qt4 or Qt5 development libraries and headers
-2. SyntroCore libraries and headers 
-3. gstreamer libraries
-
-### Fetch
-To get the gstreamer dependencies:
-
-	sudo apt-get install libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libgstreamer-plugins-bad0.10-dev
-
-Then get the repo (assumes using the standard location of ~/SyntroNet):
-
-	cd ~/SyntroNet
-	git clone git://github.com/richards-tech/SyntroLCamGS.git
-
-
 ### Build 
 	
-	cd ~/SyntroNet/SyntroLCamGS
+	cd ~/richards-tech/SyntroLCamGS
 	qmake 
 	make 
 	sudo make install
@@ -102,6 +80,6 @@ SyntroLCamGS using the -s flag.
 
 Example:
 
-	SyntroLCam -scamera2.ini <other options>
+	SyntroLCamGS -scamera2.ini <other options>
 
 

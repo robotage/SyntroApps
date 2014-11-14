@@ -101,12 +101,8 @@ private:
 
     qint64 m_videoOffset;
     qint64 m_audioOffset;
-    qint64 m_nextVideoTime;
-    qint64 m_nextAudioTime;
-    qint64 m_videoInterval;
-    qint64 m_audioInterval;
 
-	bool m_pipelinesActive;
+    bool m_pipelinesActive;
 
     gint m_videoBusWatch;
     gint m_audioBusWatch;

@@ -320,7 +320,7 @@ bool AVMuxEncode::newPipelines(SYNTRO_AVPARAMS *avParams)
                 , g_pipelineIndex, m_videoCompressionRate, g_pipelineIndex);
     } else {
         videoLaunch = g_strdup_printf (
-              " appsrc name=videoSrc%d ! jpegdec ! queue ! x264enc bitrate=%d  "
+              " appsrc name=videoSrc%d ! jpegdec ! queue ! x264enc bitrate=%d tune=zerolatency rc-lookahead=0"
               " ! queue ! rtph264pay pt=96 ! queue ! appsink name=videoSink%d"
                 , g_pipelineIndex, m_videoCompressionRate / 1000, g_pipelineIndex);
 
@@ -340,7 +340,7 @@ bool AVMuxEncode::newPipelines(SYNTRO_AVPARAMS *avParams)
 #ifdef GST_IMX6
                 " appsrc name=audioSrc%d ! faac bitrate=%d ! rtpmp4apay pt=97 ! appsink name=audioSink%d "
 #else
-                " appsrc name=audioSrc%d ! ffenc_aac bitrate=%d ! rtpmp4apay pt=97 min-ptime=1000000000 ! appsink name=audioSink%d "
+                " appsrc name=audioSrc%d ! faac bitrate=%d ! rtpmp4apay pt=97 min-ptime=1000000000 ! appsink name=audioSink%d "
 #endif
              , g_pipelineIndex, m_audioCompressionRate, g_pipelineIndex);
 

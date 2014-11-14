@@ -1,6 +1,6 @@
 #
 #  Copyright (c) 2014 Scott Ellis and Richard Barnett
-#	
+#
 #  This file is part of SyntroNet
 #
 #  SyntroNet is free software: you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 #  along with SyntroNet.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-DEFINES += USING_GSTREAMER
+DEFINES += USING_GSTREAMER USE_GST10
 
 greaterThan(QT_MAJOR_VERSION, 4): cache()
 
@@ -25,10 +25,10 @@ TEMPLATE = app
 TARGET = SyntroViewGS
 
 win32* {
-	DESTDIR = Release
+        DESTDIR = Release
 }
 else {
-	DESTDIR = Output 
+        DESTDIR = Output
 }
 
 QT += core gui network
@@ -37,29 +37,29 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 CONFIG += debug_and_release
 
 unix {
-	macx {
-		LIBS += /usr/local/lib/libSyntroLib.dylib \
-			/usr/local/lib/libSyntroGUI.dylib \
-			/usr/local/lib/libSyntroControlLib.dylib
+        macx {
+                LIBS += /usr/local/lib/libSyntroLib.dylib \
+                        /usr/local/lib/libSyntroGUI.dylib \
+                        /usr/local/lib/libSyntroControlLib.dylib
 
                 QT += multimedia
 
-		INCLUDEPATH += /usr/local/include/syntro \
-				/usr/local/include/syntro/SyntroControlLib \
-				/usr/local/include/syntro/SyntroAV
+                INCLUDEPATH += /usr/local/include/syntro \
+                                /usr/local/include/syntro/SyntroControlLib \
+                                /usr/local/include/syntro/SyntroAV
 
-		target.path = /usr/local/bin
-	}
-	else {
-		CONFIG += link_pkgconfig
-		PKGCONFIG += syntro
-		PKGCONFIG += gstreamer-0.10 gstreamer-app-0.10
+                target.path = /usr/local/bin
+        }
+        else {
+                CONFIG += link_pkgconfig
+                PKGCONFIG += syntro
+                PKGCONFIG += gstreamer-1.0 gstreamer-app-1.0
 
-		LIBS += -lasound
-		target.path = /usr/bin
-	}
+                LIBS += -lasound
+                target.path = /usr/bin
+        }
 
-	INSTALLS += target
+        INSTALLS += target
 }
 
 DEFINES += QT_NETWORK_LIB
@@ -71,9 +71,9 @@ win32-g++:LIBS += -L"$(SYNTRODIR)/bin"
 win32-msvc*:LIBS += -L"$(SYNTRODIR)/lib"
 
 win32 {
-	DEFINES += _CRT_SECURE_NO_WARNINGS
-	INCLUDEPATH += $(SYNTRODIR)/include
-	LIBS += -lSyntroLib -lSyntroGUI
+        DEFINES += _CRT_SECURE_NO_WARNINGS
+        INCLUDEPATH += $(SYNTRODIR)/include
+        LIBS += -lSyntroLib -lSyntroGUI
 }
 
 MOC_DIR += GeneratedFiles/GS/moc

@@ -12,7 +12,8 @@ Check out www.richards-tech.com for more details.
 
 To get the gstreamer dependencies on Linux:
 
-	sudo apt-get install libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libgstreamer-plugins-bad0.10-dev	
+	sudo apt-get install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev
+	sudo apt-get install gstreamer1.0-libav
 
 On Windows, install the gstreamer SDK from in c:\gstreamer-sdk. Instructions are here - http://docs.gstreamer.com/display/GstSDK/Installing+on+Windows.
 
@@ -21,12 +22,12 @@ On Windows, install the gstreamer SDK from in c:\gstreamer-sdk. Instructions are
 
 To build SyntroViewGS on Linux:
 
-	cd ~/SyntroNet/SyntroApps/SyntroViewGS
+	cd ~/richards-tech/SyntroApps/SyntroViewGS
 	qmake
 	make
 	sudo make install
 
-To build on Windows, use the SyntroViewGS.sln solution file.
+To build on Windows, use the SyntroViewGS.sln solution file. It assumes that the gstreamer sdk (http://docs.gstreamer.com/display/GstSDK/Installing+on+Windows) has been installed in the standard location.
 
 ### Run
 
