@@ -6,6 +6,10 @@ Check out www.richards-tech.com for more details.
 
 ### Release history
 
+#### November 14 2014 - 1.2.2
+
+Updated RTIMULib to latest version (4.1.0)
+
 #### November 13 2014 - 1.2.1
 
 Improved SyntroViewGS startup on Windows
