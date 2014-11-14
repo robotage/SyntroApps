@@ -533,10 +533,6 @@ bool AVMuxDecode::newPipelines(SYNTRO_AVPARAMS *avParams)
     gst_object_unref (bus);
 #endif
 
-    GstStateChangeReturn ret = gst_element_set_state (m_videoPipeline, GST_STATE_PLAYING);
-    if (ret == GST_STATE_CHANGE_FAILURE) {
-        g_printerr ("Unable to set the video pipeline to the play state.\n");
-    }
     m_pipelinesActive = true;
     return true;
 }

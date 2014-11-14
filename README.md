@@ -6,6 +6,10 @@ Check out www.richards-tech.com for more details.
 
 ### Release history
 
+#### November 13 2014 - 1.2.1
+
+Improved SyntroViewGS startup on Windows
+
 #### November 13 2014 - 1.2.0
 
 Upgraded SyntroViewGS to gstreamer 1.0 on Linux (still 0.10 on Windows).
