@@ -26,12 +26,12 @@
 class QtGLPlaneComponent : public QtGLComponent
 {
 public:
-	QtGLPlaneComponent();
-	~QtGLPlaneComponent();
+    QtGLPlaneComponent();
+    ~QtGLPlaneComponent();
 
-	void generate(float width, float height);
-	void draw();
+    void generate(float width, float height, float repeatX = 1, float repeatY = 1);
+    void draw();
 
 };
-		
+
 #endif // QTGLPLANECOMPONENT_H

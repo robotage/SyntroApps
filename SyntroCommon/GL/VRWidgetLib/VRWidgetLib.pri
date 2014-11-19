@@ -20,13 +20,19 @@
 INCLUDEPATH += $$PWD
 DEPENDPATH += $$PWD
 
-HEADERS += $$PWD/VRWidget.h \
+HEADERS += $$PWD/VRWidget.h\
     $$PWD/VRIMUWidget.h \
     $$PWD/VRHandWidget.h \
+    $$PWD/VRHumanoidWidget.h \
+    $$PWD/VRPlaneWidget.h \
+    $$PWD/VRFloorWidget.h \
 
 SOURCES += $$PWD/VRWidget.cpp \
     $$PWD/VRIMUWidget.cpp \
     $$PWD/VRHandWidget.cpp \
+    $$PWD/VRHumanoidWidget.cpp \
+    $$PWD/VRPlaneWidget.cpp \
+    $$PWD/VRFloorWidget.cpp \
 
 RESOURCES += $$PWD/VRWidgetLib.qrc
 

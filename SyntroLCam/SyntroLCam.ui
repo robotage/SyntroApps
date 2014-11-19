@@ -67,10 +67,15 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="separator"/>
    <addaction name="actionConfigureCamera"/>
+   <addaction name="separator"/>
    <addaction name="actionConfigureMotion"/>
+   <addaction name="separator"/>
    <addaction name="actionConfigureStreams"/>
+   <addaction name="separator"/>
    <addaction name="actionConfigureAudio"/>
+   <addaction name="separator"/>
    <addaction name="actionExit"/>
    <addaction name="separator"/>
   </widget>

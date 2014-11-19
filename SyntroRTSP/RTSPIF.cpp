@@ -21,7 +21,7 @@
 #include "RTSPIF.h"
 #include <qdebug.h>
 
-#define GSTBUSMSG
+//#define GSTBUSMSG
 
 #ifdef USE_GST10
 static void sinkEOS(GstAppSink * /*appsink*/, gpointer /*user_data*/)
@@ -50,7 +50,7 @@ static gboolean videoBusMessage(GstBus * /*bus*/, GstMessage *message, gpointer 
             ((GstElement *)(message->src) == ((RTSPIF *)data)->m_pipeline)){
          gst_message_parse_state_changed (message, &old_state, &new_state, NULL);
             qDebug() << "Video element " << GST_OBJECT_NAME (message->src) << " changed state from "
-				<< gst_element_state_get_name (old_state) << " to " << gst_element_state_get_name (new_state);
+                << gst_element_state_get_name (old_state) << " to " << gst_element_state_get_name (new_state);
     }
     return TRUE;
 }
@@ -59,12 +59,12 @@ static gboolean videoBusMessage(GstBus * /*bus*/, GstMessage *message, gpointer 
 
 RTSPIF::RTSPIF() : SyntroThread("RTSPIF", "SyntroRTSP")
 {
-	m_pipeline = NULL;
-	m_pipelineActive = false;
-	m_appVideoSink = NULL;
-	m_widthPrefix = "width=(int)";
-	m_heightPrefix = "height=(int)";
-	m_frameratePrefix = "framerate=(fraction)";
+    m_pipeline = NULL;
+    m_pipelineActive = false;
+    m_appVideoSink = NULL;
+    m_widthPrefix = "width=(int)";
+    m_heightPrefix = "height=(int)";
+    m_frameratePrefix = "framerate=(fraction)";
 }
 
 RTSPIF::~RTSPIF()
@@ -73,18 +73,18 @@ RTSPIF::~RTSPIF()
 
 void RTSPIF::initThread()
 {
-	thread()->setPriority(QThread::TimeCriticalPriority);
-	open();
+    thread()->setPriority(QThread::TimeCriticalPriority);
+    open();
 }
 
 void RTSPIF::finishThread()
 {
-	close();
+    close();
 }
 
 bool RTSPIF::open()
 {
-	QSettings *settings = SyntroUtils::getSettings();
+    QSettings *settings = SyntroUtils::getSettings();
 
     settings->beginGroup(SYNTRORTSP_CAMERA_GROUP);
 
@@ -93,24 +93,24 @@ bool RTSPIF::open()
     m_user = settings->value(SYNTRORTSP_CAMERA_USERNAME).toString();
     m_pw = settings->value(SYNTRORTSP_CAMERA_PASSWORD).toString();
 
-	//	This is just to get started. Real value will come in from the camera
+    //	This is just to get started. Real value will come in from the camera
 
     m_width = 640;
     m_height = 480;
     m_frameRate = 10;
     m_frameSize = m_width * m_height * 3;
 
-	newPipeline();
+    newPipeline();
 
-	m_frameCount = 0;
+    m_frameCount = 0;
     m_lastFrameTime = SyntroClock();
 
-	emit netcamStatus(QString("Connecting to ") + QString(m_IPAddress));
+    emit netcamStatus(QString("Connecting to ") + QString(m_IPAddress));
 
 
-	settings->endGroup();
+    settings->endGroup();
 
-	delete settings;
+    delete settings;
 
     m_firstFrame = true;
     m_startTime = SyntroClock();
@@ -151,22 +151,22 @@ void RTSPIF::newCamera()
 
 int RTSPIF::getCapsValue(const QString &caps, const QString& key, const QString& terminator)
 {
-	QString sub;
-	int start;
-	int end;
+    QString sub;
+    int start;
+    int end;
 
     start = caps.indexOf(key);
-	if (start == -1)
-		return -1;
+    if (start == -1)
+        return -1;
 
-	start += key.length();
+    start += key.length();
     sub = caps;
     sub = sub.remove(0, start);
-	end = sub.indexOf(terminator);
-	if (end == -1)
-		return -1;
-	sub = sub.left(end);
-	return sub.toInt();
+    end = sub.indexOf(terminator);
+    if (end == -1)
+        return -1;
+    sub = sub.left(end);
+    return sub.toInt();
 }
 
 
@@ -260,7 +260,7 @@ bool RTSPIF::newPipeline()
 #ifdef USE_GST10
             " rtspsrc location=rtsp://%s:%d/videoMain user-id=%s user-pw=%s "
              " ! decodebin ! queue ! autovideoconvert ! capsfilter caps=\"video/x-raw,format=RGB\" ! appsink name=videoSink0 "
-			 ,qPrintable(m_IPAddress), m_port, qPrintable(m_user), qPrintable(m_pw));
+             ,qPrintable(m_IPAddress), m_port, qPrintable(m_user), qPrintable(m_pw));
 #else
             " rtspsrc location=rtsp://%s:%d/videoMain user-id=%s user-pw=%s "
             " ! gstrtpjitterbuffer ! rtph264depay ! queue ! nv_omx_h264dec "
@@ -319,8 +319,8 @@ bool RTSPIF::newPipeline()
     gst_object_unref (bus);
 #endif
 
- 	m_pipelineActive = true;
-	return true;
+    m_pipelineActive = true;
+    return true;
 }
 
 void RTSPIF::deletePipeline()
@@ -328,8 +328,8 @@ void RTSPIF::deletePipeline()
     if (!m_pipelineActive)
         return;
 
-	m_pipelineActive = false;
-	m_videoLock.lock();
+    m_pipelineActive = false;
+    m_videoLock.lock();
     if (m_pipeline != NULL) {
 #ifdef GSTBUSMSG
         if (m_videoBusWatch != -1) {
@@ -353,13 +353,13 @@ void RTSPIF::deletePipeline()
 
     m_pipeline = NULL;
     m_appVideoSink = NULL;
-	m_videoLock.unlock();
+    m_videoLock.unlock();
     m_caps = "";
 }
 
 QSize RTSPIF::getImageSize()
 {
-	return QSize(m_width, m_height);
+    return QSize(m_width, m_height);
 }
 
 

@@ -25,7 +25,10 @@
 
 #define PIPELINE_MS_TO_NS       ((qint64)1000000)
 
-#define GSTBUSMSG
+//  Note: enabling GSTBUSMSG can cause problems when deleting pipelines.
+//  Only uncomment this symbol for debugging.
+
+//#define GSTBUSMSG
 
 #ifdef USE_GST10
 static void sinkEOS(GstAppSink * /*appsink*/, gpointer /*user_data*/)
@@ -119,7 +122,7 @@ void AVMuxDecode::finishThread()
 void AVMuxDecode::timerEvent(QTimerEvent * /*event*/)
 {
     GstBuffer *buffer;
-    uchar *data;
+    int imageLength;
 
     while (1) {
         m_avmuxLock.lock();
@@ -140,16 +143,19 @@ void AVMuxDecode::timerEvent(QTimerEvent * /*event*/)
             GstMemory *sinkMem = gst_buffer_get_all_memory(buffer);
             GstMapInfo *info = new GstMapInfo;
             gst_memory_map(sinkMem, info, GST_MAP_READ);
-            data = (uchar *)malloc(sinkMem->size);
-            memcpy(data, info->data, sinkMem->size);
+            imageLength = sinkMem->size;
+            QImage image(m_avParams.videoWidth, m_avParams.videoHeight, QImage::Format_RGB888);
+            if (imageLength <= m_avParams.videoWidth * m_avParams.videoHeight * 3)
+                memcpy(image.bits(), info->data, imageLength);
             gst_memory_unmap(sinkMem, info);
             delete info;
             gst_memory_unref(sinkMem);
 #else
-            data = (uchar *)malloc(GST_BUFFER_SIZE(buffer));
-            memcpy(data, GST_BUFFER_DATA(buffer), GST_BUFFER_SIZE(buffer));
+            imageLength = GST_BUFFER_SIZE(buffer);
+            QImage image(m_avParams.videoWidth, m_avParams.videoHeight, QImage::Format_RGB888);
+            if (imageLength <= m_avParams.videoWidth * m_avParams.videoHeight * 3)
+                memcpy(image.bits(), GST_BUFFER_DATA(buffer), imageLength);
 #endif
-            QImage image(data, m_avParams.videoWidth, m_avParams.videoHeight, QImage::Format_RGB888, free, data);
             emit newImage(image, m_lastVideoTimestamp);
             gst_buffer_unref(buffer);
         }
@@ -239,7 +245,7 @@ void AVMuxDecode::processAVData(QByteArray avmuxArray)
     SyntroUtils::avmuxHeaderToAVParams(avmux, &m_avParams);
     switch (m_avParams.avmuxSubtype) {
         case SYNTRO_RECORD_TYPE_AVMUX_MJPPCM:
-            processMJPPCM(avmux);
+            processMJPPCM(avmux, avmuxArray.length());
             break;
 
         case SYNTRO_RECORD_TYPE_AVMUX_RTP:
@@ -257,7 +263,7 @@ void AVMuxDecode::processAVData(QByteArray avmuxArray)
                 }
             }
             if (m_pipelinesActive)
-                processRTP(avmux);
+                processRTP(avmux, avmuxArray.length());
             break;
 
         default:
@@ -266,7 +272,7 @@ void AVMuxDecode::processAVData(QByteArray avmuxArray)
     }
 }
 
-void AVMuxDecode::processMJPPCM(SYNTRO_RECORD_AVMUX *avmux)
+void AVMuxDecode::processMJPPCM(SYNTRO_RECORD_AVMUX *avmux, int length)
 {
     unsigned char *ptr;
     int muxSize;
@@ -278,8 +284,20 @@ void AVMuxDecode::processMJPPCM(SYNTRO_RECORD_AVMUX *avmux)
     videoSize = SyntroUtils::convertUC4ToInt(avmux->videoSize);
     audioSize = SyntroUtils::convertUC4ToInt(avmux->audioSize);
     param = SyntroUtils::convertUC2ToInt(avmux->recordHeader.param);
+    int calculatedLength = sizeof(SYNTRO_RECORD_AVMUX) + muxSize + videoSize + audioSize;
 
-    ptr = (unsigned char *)(avmux + 1) + muxSize;        // pointer to video area
+    if (calculatedLength != length) {
+        logError(QString("Received avmux with mismatched size %1 (packet), %2 (calculated)")
+                 .arg(length).arg(calculatedLength));
+        return;
+    }
+
+    ptr = (unsigned char *)(avmux + 1);                     // pointer to first data area
+
+    if (muxSize != 0) {
+        emit newMuxData(QByteArray((const char *)ptr, muxSize), SyntroUtils::convertUC8ToInt64(avmux->recordHeader.timestamp));
+        ptr += muxSize;
+    }
 
     if ((videoSize != 0) || (param == SYNTRO_RECORDHEADER_PARAM_NOOP)) {
         // there is video data present
@@ -309,7 +327,7 @@ void AVMuxDecode::processMJPPCM(SYNTRO_RECORD_AVMUX *avmux)
     }
 }
 
-void AVMuxDecode::processRTP(SYNTRO_RECORD_AVMUX *avmux)
+void AVMuxDecode::processRTP(SYNTRO_RECORD_AVMUX *avmux, int length)
 {
     unsigned char *ptr;
     int muxSize;
@@ -327,12 +345,20 @@ void AVMuxDecode::processRTP(SYNTRO_RECORD_AVMUX *avmux)
     muxSize = SyntroUtils::convertUC4ToInt(avmux->muxSize);
     videoSize = SyntroUtils::convertUC4ToInt(avmux->videoSize);
     audioSize = SyntroUtils::convertUC4ToInt(avmux->audioSize);
+    int calculatedLength = sizeof(SYNTRO_RECORD_AVMUX) + muxSize + videoSize + audioSize;
 
-    if (muxSize != 0) {
-        printf("RTPMP4 with non zero mux size %d\n", muxSize);
+    if (calculatedLength != length) {
+        logError(QString("Received avmux with mismatched size %1 (packet), %2 (calculated)")
+                 .arg(length).arg(calculatedLength));
         return;
     }
+
     ptr = (unsigned char *)(avmux + 1);                     // pointer to first data area
+
+    if (muxSize != 0) {
+        emit newMuxData(QByteArray((const char *)ptr, muxSize), SyntroUtils::convertUC8ToInt64(avmux->recordHeader.timestamp));
+        ptr += muxSize;
+    }
 
     if (videoSize != 0) {
         // there is video data present
@@ -349,7 +375,7 @@ void AVMuxDecode::processRTP(SYNTRO_RECORD_AVMUX *avmux)
                     (param == SYNTRO_RECORDHEADER_PARAM_REFRESH)) {
                 QImage image;
                 image.loadFromData((const uchar *)ptr, videoSize, "JPEG");
-                emit newImage(image, SyntroUtils::convertUC8ToInt64(avmux->recordHeader.timestamp));
+                emit newRefreshImage(image, SyntroUtils::convertUC8ToInt64(avmux->recordHeader.timestamp));
             } else {
                 if (!m_waitingForVideoCaps) {
                     m_lastVideoTimestamp = SyntroUtils::convertUC8ToInt64(avmux->recordHeader.timestamp);
@@ -714,6 +740,7 @@ void AVMuxDecode::putVideoData(const unsigned char *data, int length)
         GST_BUFFER_OFFSET_END(buffer) = m_videoOffset;
 #ifdef USE_GST10
         GST_BUFFER_PTS(buffer) = 0;
+        GST_BUFFER_DTS(buffer) = 0;
 #else
         GST_BUFFER_TIMESTAMP(buffer) = 0;
 #endif

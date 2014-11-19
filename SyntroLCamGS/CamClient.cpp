@@ -148,33 +148,33 @@ int CamClient::getAudioSampleCount()
 
 void CamClient::ageOutPrerollQueues(qint64 now)
 {
-	while (!m_videoPrerollQueue.empty()) {
-		if ((now - m_videoPrerollQueue.head()->timestamp) < m_preroll)
-			break;
+    while (!m_videoPrerollQueue.empty()) {
+        if ((now - m_videoPrerollQueue.head()->timestamp) < m_preroll)
+            break;
 
-		delete m_videoPrerollQueue.dequeue();
-	}
+        delete m_videoPrerollQueue.dequeue();
+    }
 
-	while (!m_audioPrerollQueue.empty()) {
-		if ((now - m_audioPrerollQueue.head()->timestamp) < m_preroll)
-			break;
+    while (!m_audioPrerollQueue.empty()) {
+        if ((now - m_audioPrerollQueue.head()->timestamp) < m_preroll)
+            break;
 
-		delete m_audioPrerollQueue.dequeue();
-	}
+        delete m_audioPrerollQueue.dequeue();
+    }
 
-	while (!m_videoLowRatePrerollQueue.empty()) {
-		if ((now - m_videoLowRatePrerollQueue.head()->timestamp) < m_preroll)
-			break;
+    while (!m_videoLowRatePrerollQueue.empty()) {
+        if ((now - m_videoLowRatePrerollQueue.head()->timestamp) < m_preroll)
+            break;
 
-		delete m_videoLowRatePrerollQueue.dequeue();
-	}
+        delete m_videoLowRatePrerollQueue.dequeue();
+    }
 
-	while (!m_audioLowRatePrerollQueue.empty()) {
-		if ((now - m_audioLowRatePrerollQueue.head()->timestamp) < m_preroll)
-			break;
+    while (!m_audioLowRatePrerollQueue.empty()) {
+        if ((now - m_audioLowRatePrerollQueue.head()->timestamp) < m_preroll)
+            break;
 
-		delete m_audioLowRatePrerollQueue.dequeue();
-	}
+        delete m_audioLowRatePrerollQueue.dequeue();
+    }
 }
 
 //----------------------------------------------------------
@@ -602,7 +602,7 @@ void CamClient::processAVQueueRTP()
     switch (m_sequenceState) {
         // waiting for a motion event
         case CAMCLIENT_STATE_IDLE:
-		ageOutPrerollQueues(now);
+        ageOutPrerollQueues(now);
 
         // if there is a frame, put on preroll queue and check for motion
 
@@ -871,7 +871,6 @@ void CamClient::processEncoderQueue()
     }
 
     if (SyntroUtils::syntroTimerExpired(QDateTime::currentMSecsSinceEpoch(), m_lastCapsSend, CAMCLIENT_CAPS_INTERVAL)) {
-        qDebug() << "caps";
         sendHighRateCaps();
         sendLowRateCaps();
         m_lastCapsSend = QDateTime::currentMSecsSinceEpoch();
@@ -976,7 +975,7 @@ void CamClient::processEncoderQueue()
 
 void CamClient::appClientInit()
 {
-	newStream();
+    newStream();
 }
 
 void CamClient::appClientExit()
@@ -1008,11 +1007,11 @@ void CamClient::appClientReceiveE2E(int servicePort, SYNTRO_EHEAD *header, int /
 {
     if (servicePort != m_controlPort) {
         logWarn(QString("Received E2E on incorrect port %1").arg(m_controlPort));
-		free(header);
-		return;
-	}
+        free(header);
+        return;
+    }
 
-	free(header);
+    free(header);
 }
 
 bool CamClient::dequeueVideoFrame(QByteArray& videoData, qint64& timestamp)
@@ -1125,8 +1124,17 @@ void CamClient::newAudio(QByteArray audioFrame)
 void CamClient::newStream()
 {
     int avtype;
-	// remove the old streams
-	
+    // remove the old streams
+
+    if (m_highRateEncoder != NULL)
+        m_highRateEncoder->exitThread();
+    if (m_generateLowRate)
+        m_lowRateEncoder->exitThread();
+
+    m_highRateEncoder = NULL;
+    m_lowRateEncoder = NULL;
+    msleep(10);
+
     if (m_avmuxPortHighRate != -1)
         clientRemoveService(m_avmuxPortHighRate);
     m_avmuxPortHighRate = -1;
@@ -1137,14 +1145,6 @@ void CamClient::newStream()
 
     if (m_controlPort != -1)
         clientRemoveService(m_controlPort);
-
-    if (m_highRateEncoder != NULL)
-        m_highRateEncoder->exitThread();
-    if (m_generateLowRate)
-        m_lowRateEncoder->exitThread();
-
-    m_highRateEncoder = NULL;
-    m_lowRateEncoder = NULL;
 
     // and start the new streams
 

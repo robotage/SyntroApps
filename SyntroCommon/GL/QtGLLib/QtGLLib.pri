@@ -30,7 +30,8 @@ HEADERS += $$PWD/QtGL.h \
     $$PWD/QtGLPlaneComponent.h \
     $$PWD/QtGLCylinderComponent.h \
     $$PWD/QtGLWireCubeComponent.h \
-    $$PWD/QtGLDiskComponent.h
+    $$PWD/QtGLDiskComponent.h \
+    $$PWD/QtGLSphereComponent.h
  
 SOURCES += $$PWD/QtGL.cpp \
     $$PWD/QtGLTextureShader.cpp \
@@ -41,4 +42,5 @@ SOURCES += $$PWD/QtGL.cpp \
     $$PWD/QtGLPlaneComponent.cpp \
     $$PWD/QtGLCylinderComponent.cpp \
     $$PWD/QtGLWireCubeComponent.cpp \
-    $$PWD/QtGLDiskComponent.cpp
+    $$PWD/QtGLDiskComponent.cpp \ 
+    $$PWD/QtGLSphereComponent.cpp 

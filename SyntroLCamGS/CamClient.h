@@ -121,7 +121,7 @@ class AVMuxEncode;
 
 class CamClient : public Endpoint
 {
-	Q_OBJECT
+    Q_OBJECT
 
 public:
     CamClient(QObject *parent);
@@ -130,18 +130,18 @@ public:
     int getAudioSampleCount();
 
 public slots:
-	void newStream();
+    void newStream();
     void newJPEG(QByteArray);
     void newAudio(QByteArray);
     void videoFormat(int width, int height, int framerate);
     void audioFormat(int sampleRate, int channels, int sampleSize);
 
 protected:
-	void appClientInit();
-	void appClientExit();
-	void appClientReceiveE2E(int servicePort, SYNTRO_EHEAD *header, int length); // process an E2E message
-	void appClientConnected();								// called when endpoint is connected to SyntroControl
-	void appClientBackground();
+    void appClientInit();
+    void appClientExit();
+    void appClientReceiveE2E(int servicePort, SYNTRO_EHEAD *header, int length); // process an E2E message
+    void appClientConnected();								// called when endpoint is connected to SyntroControl
+    void appClientBackground();
     void processAudioQueue();  								// processes the audio queue
     void processSensorQueue();  							// processes the sensor queue
     void processEncoderQueue();                             // processes the encoder output
@@ -188,7 +188,7 @@ private:
     void clearVideoQueue();
     void clearAudioQueue();
     void clearQueues();
-	void ageOutPrerollQueues(qint64 now);
+    void ageOutPrerollQueues(qint64 now);
 
     qint64 m_lastChangeTime;                                // time last frame change was detected
     bool m_imageChanged;                                    // if image has changed

@@ -40,7 +40,9 @@ typedef enum
     VRWIDGET_COMPASS,
     VRWIDGET_IMU,
     VRWIDGET_SPHERE,
-    VRWIDGET_HAND
+    VRWIDGET_HAND,
+    VRWIDGET_HUMANOID,
+    VRWIDGET_FLOOR,
 } VRWIDGET_TYPE;
 
 //	Default used for the default render

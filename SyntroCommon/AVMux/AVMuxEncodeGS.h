@@ -1,6 +1,6 @@
 //
 //  Copyright (c) 2014 Scott Ellis and Richard Barnett
-//	
+//
 //  This file is part of SyntroNet
 //
 //  SyntroNet is free software: you can redistribute it and/or modify
@@ -33,7 +33,7 @@
 #define AVMUXENCODE_AV_TYPE_RTPH264 2               // RTP framed H264 + MP4A
 
 
-#define AVMUXENCODE_INTERVAL  (SYNTRO_CLOCKS_PER_SEC / 50)
+#define AVMUXENCODE_INTERVAL  (SYNTRO_CLOCKS_PER_SEC / 100)
 
 typedef struct
 {

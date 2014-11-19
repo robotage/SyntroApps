@@ -23,7 +23,10 @@
 #include <qbuffer.h>
 #include <qbytearray.h>
 
-#define GSTBUSMSG
+//  Note: enabling GSTBUSMSG can cause problems when deleting pipelines.
+//  Only uncomment this symbol for debugging.
+
+//#define GSTBUSMSG
 
 #define PIPELINE_MS_TO_NS       ((qint64)1000000)
 
@@ -462,9 +465,9 @@ void AVMuxEncode::deletePipelines()
     m_audioSinkLock.lock();
 
     if (m_videoPipeline != NULL) {
+        gst_element_set_state (m_videoPipeline, GST_STATE_NULL);
         gst_app_sink_set_emit_signals((GstAppSink *)(m_appVideoSink), FALSE);
         g_signal_handlers_disconnect_by_data(m_appVideoSink, this);
-        gst_element_set_state (m_videoPipeline, GST_STATE_NULL);
         gst_object_unref(m_videoPipeline);
         m_videoPipeline = NULL;
     }
@@ -477,8 +480,8 @@ void AVMuxEncode::deletePipelines()
 #endif
 
     if (m_audioPipeline != NULL) {
-        gst_app_sink_set_emit_signals((GstAppSink *)(m_appAudioSink), FALSE);
         gst_element_set_state (m_audioPipeline, GST_STATE_NULL);
+        gst_app_sink_set_emit_signals((GstAppSink *)(m_appAudioSink), FALSE);
         g_signal_handlers_disconnect_by_data(m_appAudioSink, this);
         gst_object_unref(m_audioPipeline);
         m_audioPipeline = NULL;

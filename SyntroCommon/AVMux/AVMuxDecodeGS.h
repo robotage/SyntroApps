@@ -50,7 +50,9 @@ public slots:
 
 signals:
     void newImage(QImage image, qint64 timestamp);
+    void newRefreshImage(QImage image, qint64 timestamp);
     void newAudioSamples(QByteArray dataArray, qint64 timestamp, int rate, int channels, int size);
+    void newMuxData(QByteArray dataArray, qint64 timestamp);
 
 protected:
     void initThread();
@@ -58,8 +60,8 @@ protected:
     void finishThread();
 
 private:
-    void processMJPPCM(SYNTRO_RECORD_AVMUX *avmux);
-    void processRTP(SYNTRO_RECORD_AVMUX *avmux);
+    void processMJPPCM(SYNTRO_RECORD_AVMUX *avmux, int length);
+    void processRTP(SYNTRO_RECORD_AVMUX *avmux, int length);
     void processAVData(QByteArray avmuxArray);
 
     bool newPipelines(SYNTRO_AVPARAMS *avParams);

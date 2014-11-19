@@ -17,7 +17,13 @@
 #  along with SyntroNet.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-DEFINES += USING_GSTREAMER USE_GST10
+DEFINES += USING_GSTREAMER
+equals(QT_ARCH, "arm") {
+        PKGCONFIG += gstreamer-0.10 gstreamer-app-0.10
+    } else {
+        DEFINES += USING_GSTREAMER USE_GST10
+        PKGCONFIG += gstreamer-1.0 gstreamer-app-1.0
+    }
 
 greaterThan(QT_MAJOR_VERSION, 4): cache()
 
@@ -26,10 +32,9 @@ TARGET = SyntroViewGS
 
 win32* {
         DESTDIR = Release
-}
-else {
+    } else {
         DESTDIR = Output
-}
+    }
 
 QT += core gui network
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
@@ -49,12 +54,9 @@ unix {
                                 /usr/local/include/syntro/SyntroAV
 
                 target.path = /usr/local/bin
-        }
-        else {
+        } else {
                 CONFIG += link_pkgconfig
                 PKGCONFIG += syntro
-                PKGCONFIG += gstreamer-1.0 gstreamer-app-1.0
-
                 LIBS += -lasound
                 target.path = /usr/bin
         }
